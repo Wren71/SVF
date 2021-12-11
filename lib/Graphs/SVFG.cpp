@@ -33,6 +33,7 @@
 #include "Graphs/SVFGOPT.h"
 #include "Graphs/SVFGStat.h"
 #include "Graphs/ICFG.h"
+#include "MemoryModel/PointerAnalysisImpl.h"
 #include <fstream>
 #include "Util/Options.h"
 
@@ -158,26 +159,6 @@ const std::string ThreadMHPIndSVFGEdge::toString() const {
     raw_string_ostream rawstr(str);
     rawstr << "ThreadMHPIndSVFGEdge: " << getDstID() << "<--" << getSrcID() << "\n";
     return rawstr.str();
-}
-
-const Value* StmtSVFGNode::getValue() const {
-    return getPAGEdge()->getValue();
-}
-
-const Value* CmpVFGNode::getValue() const {
-    return getRes()->getValue();
-}
-
-const Value* BinaryOPVFGNode::getValue() const {
-    return getRes()->getValue();
-}
-
-const Value* PHIVFGNode::getValue() const {
-    return getRes()->getValue();
-}
-
-const Value* ArgumentVFGNode::getValue() const {
-    return param->getValue();
 }
 
 
@@ -815,14 +796,13 @@ void SVFG::connectFromGlobalToProgEntry()
         if (const StoreSVFGNode* store = SVFUtil::dyn_cast<StoreSVFGNode>(*storeIt))
         {
             /// connect this store to main function entry
-            const PointsTo& storePts = mssa->getPTA()->getPts(
-                                           store->getPAGDstNodeID());
+            const NodeBS& storePts = mssa->getPTA()->getPts(store->getPAGDstNodeID()).toNodeBS();
 
-            for (NodeBS::iterator fiIt = formalIns.begin(), fiEit =
+            for (FormalINSVFGNodeSet::iterator fiIt = formalIns.begin(), fiEit =
                         formalIns.end(); fiIt != fiEit; ++fiIt)
             {
                 NodeID formalInID = *fiIt;
-                PointsTo formalInPts = ((FormalINSVFGNode*) getSVFGNode(formalInID))->getPointsTo();
+                NodeBS formalInPts = ((FormalINSVFGNode*) getSVFGNode(formalInID))->getPointsTo();
 
                 formalInPts &= storePts;
                 if (formalInPts.empty())
@@ -838,7 +818,7 @@ void SVFG::connectFromGlobalToProgEntry()
 /*
  *  Add def-use edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo& cpts)
+SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts)
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
@@ -860,7 +840,7 @@ SVFGEdge* SVFG::addIntraIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsT
 /*!
  * Add def-use edges of a memory region between two may-happen-in-parallel statements for multithreaded program
  */
-SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo& cpts)
+SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts)
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
@@ -880,7 +860,7 @@ SVFGEdge* SVFG::addThreadMHPIndirectVFEdge(NodeID srcId, NodeID dstId, const Poi
 /*
  *  Add def-use call edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo& cpts,CallSiteID csId)
+SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId)
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
@@ -900,7 +880,7 @@ SVFGEdge* SVFG::addCallIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo
 /*
  *  Add def-use return edges of a memory region between two statements
  */
-SVFGEdge* SVFG::addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo& cpts,CallSiteID csId)
+SVFGEdge* SVFG::addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const NodeBS& cpts,CallSiteID csId)
 {
     SVFGNode* srcNode = getSVFGNode(srcId);
     SVFGNode* dstNode = getSVFGNode(dstId);
@@ -922,8 +902,8 @@ SVFGEdge* SVFG::addRetIndirectVFEdge(NodeID srcId, NodeID dstId, const PointsTo&
  */
 SVFGEdge* SVFG::addInterIndirectVFCallEdge(const ActualINSVFGNode* src, const FormalINSVFGNode* dst,CallSiteID csId)
 {
-    PointsTo cpts1 = src->getPointsTo();
-    PointsTo cpts2 = dst->getPointsTo();
+    NodeBS cpts1 = src->getPointsTo();
+    NodeBS cpts2 = dst->getPointsTo();
     if(cpts1.intersects(cpts2))
     {
         cpts1 &= cpts2;
@@ -938,8 +918,8 @@ SVFGEdge* SVFG::addInterIndirectVFCallEdge(const ActualINSVFGNode* src, const Fo
 SVFGEdge* SVFG::addInterIndirectVFRetEdge(const FormalOUTSVFGNode* src, const ActualOUTSVFGNode* dst,CallSiteID csId)
 {
 
-    PointsTo cpts1 = src->getPointsTo();
-    PointsTo cpts2 = dst->getPointsTo();
+    NodeBS cpts1 = src->getPointsTo();
+    NodeBS cpts2 = dst->getPointsTo();
     if(cpts1.intersects(cpts2))
     {
         cpts1 &= cpts2;

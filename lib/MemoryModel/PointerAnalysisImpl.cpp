@@ -6,7 +6,6 @@
  */
 
 
-#include "Util/Options.h"
 #include "MemoryModel/PointerAnalysisImpl.h"
 #include "SVF-FE/CPPUtil.h"
 #include "SVF-FE/DCHG.h"
@@ -20,13 +19,11 @@ using namespace SVFUtil;
 using namespace cppUtil;
 using namespace std;
 
-PersistentPointsToCache<PointsTo> BVDataPTAImpl::ptCache = PersistentPointsToCache<PointsTo>(PointsTo());
-
 /*!
  * Constructor
  */
 BVDataPTAImpl::BVDataPTAImpl(PAG* p, PointerAnalysis::PTATY type, bool alias_check) :
-    PointerAnalysis(p, type, alias_check)
+    PointerAnalysis(p, type, alias_check), ptCache()
 {
     if (type == Andersen_BASE || type == Andersen_WPA || type == AndersenWaveDiff_WPA || type == AndersenHCD_WPA || type == AndersenHLCD_WPA
             || type == AndersenLCD_WPA || type == TypeCPP_WPA || type == FlowS_DDA || type == AndersenWaveDiffWithType_WPA
@@ -87,6 +84,23 @@ void BVDataPTAImpl::expandFIObjs(const PointsTo& pts, PointsTo& expandedPts)
     }
 }
 
+void BVDataPTAImpl::expandFIObjs(const NodeBS& pts, NodeBS& expandedPts)
+{
+    expandedPts = pts;
+    for (const NodeID o : pts)
+    {
+        if (pag->getBaseObjNode(o) == o || isFieldInsensitive(o))
+        {
+            expandedPts |= pag->getAllFieldsObjNode(o);
+        }
+    }
+}
+
+void BVDataPTAImpl::remapPointsToSets(void)
+{
+    getPTDataTy()->remapAllPts();
+}
+
 /*!
  * Store pointer analysis result into a file.
  * It includes the points-to relations, and all PAG nodes including those
@@ -99,7 +113,7 @@ void BVDataPTAImpl::writeToFile(const string& filename)
     outs() << "Storing pointer analysis results to '" << filename << "'...";
 
     error_code err;
-    ToolOutputFile F(filename.c_str(), err, llvm::sys::fs::F_None);
+    ToolOutputFile F(filename.c_str(), err, llvm::sys::fs::OF_None);
     if (err)
     {
         outs() << "  error opening file for writing!\n";
@@ -463,7 +477,7 @@ AliasResult BVDataPTAImpl::alias(const PointsTo& p1, const PointsTo& p2)
     expandFIObjs(p2,pts2);
 
     if (containBlackHoleNode(pts1) || containBlackHoleNode(pts2) || pts1.intersects(pts2))
-        return llvm::MayAlias;
+        return llvm::AliasResult::MayAlias;
     else
-        return llvm::NoAlias;
+        return llvm::AliasResult::NoAlias;
 }

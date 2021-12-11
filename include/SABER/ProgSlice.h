@@ -30,7 +30,7 @@
 #ifndef PROGSLICE_H_
 #define PROGSLICE_H_
 
-#include "Util/PathCondAllocator.h"
+#include "SABER/PathCondAllocator.h"
 #include "Util/WorkList.h"
 #include "Graphs/SVFG.h"
 #include "Util/DPItem.h"
@@ -159,9 +159,6 @@ public:
     bool AllPathReachableSolve();
     bool isSatisfiableForAll();
     bool isSatisfiableForPairs();
-
-    /// Get llvm value from a SVFGNode
-    const Value* getLLVMValue(const SVFGNode* node) const;
 
     /// Get callsite ID and get returnsiteID from SVFGEdge
     //@{

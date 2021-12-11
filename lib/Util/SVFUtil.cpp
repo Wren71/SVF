@@ -31,6 +31,9 @@
 #include "Util/SVFUtil.h"
 #include "SVF-FE/LLVMUtil.h"
 
+#include "Util/Conditions.h"
+#include "MemoryModel/PointsTo.h"
+
 #include <sys/resource.h>		/// increase stack size
 
 using namespace SVF;
@@ -125,7 +128,7 @@ void SVFUtil::dumpPointsToList(const PointsToList& ptl)
          ii != ie; ii++)
     {
         auto bs = *ii;
-        dumpSparseSet(bs);
+        dumpSet(bs);
     }
     outs() << "}\n";
 }
@@ -149,6 +152,14 @@ void SVFUtil::dumpSet(NodeBS bs, raw_ostream & O)
             ii != ie; ii++)
     {
         O << " " << *ii << " ";
+    }
+}
+
+void SVFUtil::dumpSet(PointsTo pt, raw_ostream &o)
+{
+    for (NodeID n : pt)
+    {
+        o << " " << n << " ";
     }
 }
 
@@ -351,6 +362,24 @@ std::string SVFUtil::getSourceLoc(const Value* val)
     return rawstr.str();
 }
 
+std::string SVFUtil::hclustMethodToString(hclust_fast_methods method)
+{
+    switch (method)
+    {
+    case HCLUST_METHOD_SINGLE:
+        return "single";
+    case HCLUST_METHOD_COMPLETE:
+        return "complete";
+    case HCLUST_METHOD_AVERAGE:
+        return "average";
+    case HCLUST_METHOD_MEDIAN:
+        return "median";
+    case HCLUST_METHOD_SVF_BEST:
+        return "svf-best";
+    default:
+        assert(false && "SVFUtil::hclustMethodToString: unknown method");
+    }
+}
 
 /*!
  * return string of an LLVM Value

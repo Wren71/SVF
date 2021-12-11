@@ -67,9 +67,6 @@ public:
         Persistent,
     };
 
-    // TODO: make this not static?
-    static PersistentPointsToCache<PointsTo> ptCache;
-
     /// Constructor
     BVDataPTAImpl(PAG* pag, PointerAnalysis::PTATY type, bool alias_check = true);
 
@@ -79,7 +76,7 @@ public:
         destroy();
     }
 
-    static inline PersistentPointsToCache<PointsTo> &getPtCache(void)
+    inline PersistentPointsToCache<PointsTo> &getPtCache(void)
     {
         return ptCache;
     }
@@ -145,6 +142,11 @@ public:
 
     /// Expand FI objects
     virtual void expandFIObjs(const PointsTo& pts, PointsTo& expandedPts);
+    /// TODO: remove repetition.
+    virtual void expandFIObjs(const NodeBS& pts, NodeBS& expandedPts);
+
+    /// Remap all points-to sets to use the current mapping.
+    void remapPointsToSets(void);
 
     /// Interface for analysis result storage on filesystem.
     //@{
@@ -214,6 +216,8 @@ protected:
 private:
     /// Points-to data
     PTDataTy* ptD;
+
+    PersistentPointsToCache<PointsTo> ptCache;
 
 public:
     /// Interface expose to users of our pointer analysis, given Location infos
@@ -535,15 +539,15 @@ public:
         CPtSet cpts2;
         expandFIObjs(pts2,cpts2);
         if (containBlackHoleNode(cpts1) || containBlackHoleNode(cpts2))
-            return llvm::MayAlias;
+            return llvm::AliasResult::MayAlias;
         else if(this->getAnalysisTy()==PathS_DDA && contains(cpts1,cpts2) && contains(cpts2,cpts1))
         {
-            return llvm::MustAlias;
+            return llvm::AliasResult::MustAlias;
         }
         else if(overlap(cpts1,cpts2))
-            return llvm::MayAlias;
+            return llvm::AliasResult::MayAlias;
         else
-            return llvm::NoAlias;
+            return llvm::AliasResult::NoAlias;
     }
     /// Test blk node for cpts
     inline bool containBlackHoleNode(const CPtSet& cpts)

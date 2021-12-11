@@ -326,7 +326,7 @@ public:
     unsigned arg_size() const { return CB->arg_size(); }
     bool arg_empty() const { return CB->arg_empty(); }
     Value *getArgOperand(unsigned i) const { return CB->getArgOperand(i); }
-    unsigned getNumArgOperands() const { return CB->getNumArgOperands(); }
+    unsigned getNumArgOperands() const { return CB->arg_size(); }
     Function *getCalledFunction() const { return CB->getCalledFunction(); }
     Value *getCalledValue() const { return CB->getCalledOperand(); }
     Function *getCaller() const { return CB->getCaller(); }
@@ -355,15 +355,6 @@ template <> struct std::hash<SVF::CallSite> {
     size_t operator()(const SVF::CallSite &cs) const {
         std::hash<SVF::Instruction *> h;
         return h(cs.getInstruction());
-    }
-};
-
-/// Specialise hash for SparseBitVectors.
-template <> struct std::hash<llvm::SparseBitVector<>>
-{
-    size_t operator()(const llvm::SparseBitVector<> &sbv) const {
-        SVF::Hash<std::pair<std::pair<size_t, size_t>, size_t>> h;
-        return h(std::make_pair(std::make_pair(sbv.count(), sbv.find_first()), sbv.find_last()));
     }
 };
 

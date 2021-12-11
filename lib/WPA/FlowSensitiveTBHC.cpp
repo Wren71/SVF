@@ -13,6 +13,7 @@
 #include "WPA/FlowSensitiveTBHC.h"
 #include "WPA/WPAStat.h"
 #include "WPA/Andersen.h"
+#include "MemoryModel/PointsTo.h"
 
 using namespace SVF;
 
@@ -96,11 +97,11 @@ bool FlowSensitiveTBHC::propAlongIndirectEdge(const IndirectSVFGEdge* edge)
 
     // Get points-to targets may be used by next SVFG node.
     // Propagate points-to set for node used in dst.
-    const PointsTo& pts = edge->getPointsTo();
+    const NodeBS & pts = edge->getPointsTo();
 
     // Since the base Andersen's analysis does NOT perform type-based heap cloning,
     // it uses only the base objects; we want to account for clones too.
-    PointsTo edgePtsAndClones;
+    NodeBS edgePtsAndClones;
 
     // TODO: the conditional bool may be unnecessary.
     // Adding all clones is redundant, and introduces too many calls to propVarPts...
@@ -681,10 +682,10 @@ void FlowSensitiveTBHC::countAliases(Set<std::pair<NodeID, NodeID>> cmp, unsigne
 
             switch (alias(aPts, bPts))
             {
-            case llvm::NoAlias:
+            case llvm::AliasResult::NoAlias:
                 ++(*noAliases);
                 break;
-            case llvm::MayAlias:
+            case llvm::AliasResult::MayAlias:
                 ++(*mayAliases);
                 break;
             default:

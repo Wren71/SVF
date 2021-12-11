@@ -32,6 +32,7 @@
 
 #include "Util/SVFUtil.h"
 #include "llvm/Support/raw_ostream.h"
+#include "MemoryModel/PointsTo.h"
 
 namespace SVF
 {
@@ -287,6 +288,10 @@ public:
     {
         return elements;
     }
+
+    /// TODO: dummy to use for PointsTo in the various PTData.
+    void checkAndRemap(void) const { }
+
 private:
     ElementSet elements;
 };
@@ -648,10 +653,10 @@ public:
                         return true;
                     else if (lpts.count() == rpts.count())
                     {
-                        NodeBS::iterator bit = lpts.begin();
-                        NodeBS::iterator eit = lpts.end();
-                        NodeBS::iterator rbit = rpts.begin();
-                        NodeBS::iterator reit = rpts.end();
+                        PointsTo::iterator bit = lpts.begin();
+                        PointsTo::iterator eit = lpts.end();
+                        PointsTo::iterator rbit = rpts.begin();
+                        PointsTo::iterator reit = rpts.end();
                         for (; bit != eit && rbit != reit; bit++, rbit++)
                         {
                             if (*bit < *rbit)
@@ -724,7 +729,7 @@ public:
         {
             const PointsTo& pts = it->second;
             str += "pts{";
-            for (NodeBS::iterator ii = pts.begin(), ie = pts.end();
+            for (PointsTo::iterator ii = pts.begin(), ie = pts.end();
                     ii != ie; ii++)
             {
                 char int2str[16];
@@ -855,6 +860,18 @@ struct std::hash<SVF::CondVar<Cond>>
     {
         std::hash<Cond> h;
         return h(cv.get_cond());
+    }
+};
+
+template <typename Element>
+struct std::hash<SVF::CondStdSet<Element>>
+{
+    size_t operator()(const SVF::CondStdSet<Element> &css) const
+    {
+        // TODO: this is not a very good hash, but we probably won't be
+        //       using it for now. Needed for other templates to compile...
+        SVF::Hash<std::pair<Element, unsigned>> h;
+        return h(std::make_pair(*css.begin(), css.size()));
     }
 };
 

@@ -12,6 +12,7 @@
 #include "MSSA/SVFGBuilder.h"
 #include "WPA/Andersen.h"
 #include "Util/SCC.h"
+#include "MemoryModel/PointsTo.h"
 #include <algorithm>
 
 namespace SVF
@@ -332,7 +333,7 @@ protected:
         {
             if(const IndirectSVFGEdge* indirEdge = SVFUtil::dyn_cast<IndirectSVFGEdge>(*it))
             {
-                PointsTo& guard = const_cast<PointsTo&>(indirEdge->getPointsTo());
+                const NodeBS& guard = indirEdge->getPointsTo();
                 if(guard.test(obj))
                 {
                     DBOUT(DDDA, SVFUtil::outs() << "\t\t==backtrace indirectVF svfgNode " <<

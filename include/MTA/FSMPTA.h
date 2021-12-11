@@ -12,7 +12,9 @@
 #include "WPA/FlowSensitive.h"
 #include "MSSA/SVFGBuilder.h"
 #include "MTA/LockAnalysis.h"
+#include "MemoryModel/PointsTo.h"
 #include "MTA/MHP.h"
+
 namespace SVF
 {
 
