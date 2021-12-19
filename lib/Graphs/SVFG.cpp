@@ -33,9 +33,9 @@
 #include "Graphs/SVFGOPT.h"
 #include "Graphs/SVFGStat.h"
 #include "Graphs/ICFG.h"
-#include "MemoryModel/PointerAnalysisImpl.h"
 #include <fstream>
 #include "Util/Options.h"
+#include "MemoryModel/PointsTo.h"
 
 using namespace SVF;
 using namespace SVFUtil;
@@ -224,7 +224,7 @@ void SVFG::writeToFile(const string& filename)
 {
     outs() << "Writing SVFG analysis to '" << filename << "'...";
     error_code err;
-    ToolOutputFile F(filename.c_str(), err, llvm::sys::fs::F_None);
+    ToolOutputFile F(filename.c_str(), err, llvm::sys::fs::OF_None);
     if (err)
     {
         outs() << "  error opening file for writing!\n";
@@ -395,6 +395,15 @@ void SVFG::readFile(const string& filename){
     string line;
     // add nodes
     stat->ATVFNodeStart();
+    PAGEdge::PAGEdgeSetTy& stores = getPAGEdgeSet(PAGEdge::Store);
+    for (PAGEdge::PAGEdgeSetTy::iterator iter = stores.begin(), eiter =
+                stores.end(); iter != eiter; ++iter)
+    {
+        StorePE* store = SVFUtil::cast<StorePE>(*iter);
+        const StmtSVFGNode* sNode = getStmtVFGNode(store);
+        for(CHISet::iterator pi = mssa->getCHISet(store).begin(), epi = mssa->getCHISet(store).end(); pi!=epi; ++pi)
+            setDef((*pi)->getResVer(),sNode);
+    }
     while (F.good())
     {
         getline(F, line);
@@ -578,7 +587,7 @@ MRVer* SVFG::getMRVERFromString(const string& s)
     last = s.find("} MRVERSION: ");
     temp = s.substr(next, last-next);
     // convert string to PointsTo
-    PointsTo dstPts;
+    NodeBS dstPts;
     string point;
     stringstream ss(temp);
     while (getline(ss, point, ' ')) 
